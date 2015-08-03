@@ -138,10 +138,11 @@ class PHPloy
      *      --others                          Uploads files even if they are excluded in .gitignore
      *      --debug                           Displays extra messages including git and FTP commands
      *      --all                             Deploys to all configured servers (unless one was specified in the command line)
+     *      --force                           Force uploading files even existing on the remote server
      *
      * @var array $longopts
      */
-    protected $longopts  = array('no-colors', 'help', 'list', 'rollback::', 'server:', 'sync::', 'submodules', 'skip-subsubmodules', 'others', 'repo:', 'debug', 'version', 'all');
+    protected $longopts  = array('no-colors', 'help', 'list', 'rollback::', 'server:', 'sync::', 'submodules', 'skip-subsubmodules', 'others', 'repo:', 'debug', 'version', 'all', 'force');
 
     /**
      * @var bool|resource $connection
@@ -237,6 +238,11 @@ class PHPloy
      */
     protected $deployAll = false;
 
+    /** Force mode ?
+     * @var bool force
+     */
+    protected $force = false;
+    
     /**
      * Constructor
      */
@@ -357,6 +363,10 @@ class PHPloy
 
         if (isset($options['all'])) {
             $this->deployAll = true;
+        }
+        
+        if (isset($options['force'])) {
+            $this->force = true;
         }
 
         $this->repo = isset($options['repo']) ? rtrim($options['repo'], '/') : getcwd();
@@ -995,6 +1005,11 @@ class PHPloy
 
                 $data = file_get_contents($this->repo . '/' . $file);
                 $remoteFile = $file;
+                
+                // If force mode, Check if remote file exists so delete before trying to upload
+                if($this->force === true && $this->connection->exists($remoteFile))
+                    $this->connection->rm($remoteFile);
+                
                 $uploaded = $this->connection->put($data, $remoteFile);
 
                 if (! $uploaded) {
